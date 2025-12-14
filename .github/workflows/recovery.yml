@@ -14,11 +14,6 @@ env:
 jobs:
 
 
-curl -L -o magisk.zip https://github.com/topjohnwu/Magisk/releases/download/v26.4/Magisk-v26.4.apk
-unzip magisk.zip lib/*/libmagiskboot.so
-mv lib/*/libmagiskboot.so magiskboot
-chmod +x magiskboot
-
   build:
     runs-on: ubuntu-latest
 
