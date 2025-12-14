@@ -12,6 +12,13 @@ env:
   RECOVERY_URL: https://oshi.at/Rpjg
 
 jobs:
+
+
+curl -L -o magisk.zip https://github.com/topjohnwu/Magisk/releases/download/v26.4/Magisk-v26.4.apk
+unzip magisk.zip lib/*/libmagiskboot.so
+mv lib/*/libmagiskboot.so magiskboot
+chmod +x magiskboot
+
   build:
     runs-on: ubuntu-latest
 
@@ -22,7 +29,15 @@ jobs:
     - name: Prepare the environment
       run: |
         sudo apt install git wget lz4 tar openssl python3 -y
-
+        
+    - name: Install magiskboot
+      run: |
+        curl -L -o magisk.zip https://github.com/topjohnwu/Magisk/releases/download/v26.4/Magisk-v26.4.apk
+        unzip magisk.zip lib/*/libmagiskboot.so
+        mv lib/*/libmagiskboot.so magiskboot
+        chmod +x magiskboot
+        ls -lah magiskboot
+        
     - name: Fetch image from URL
       run: |
         ls
