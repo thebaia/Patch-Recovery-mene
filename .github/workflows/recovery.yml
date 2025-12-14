@@ -1,66 +1,52 @@
-name: RECOVERY
+name: Patch Image via URL
 
 on:
   workflow_dispatch:
     inputs:
-      RECOVERY_URL:
-        description: 'RECOVERY URL'
+      image_url:
+        description: 'Recovery Image URL'
+        default: 'https://transfer.sh/<file-id>/<file>.img'
         required: true
-        default: 'https://transfer.sh/(RECOMMENDED)'
+        type: string
 
 jobs:
-  build:
+  process:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Check Out
-      uses: actions/checkout@v4
-
-    - name: Prepare the environment
+    - name: Gain file access
+      uses: actions/checkout@v4.1.1
+    
+    - name: Fetch necessary packages
       run: |
-        sudo apt update
-        sudo apt install -y git wget lz4 tar openssl python3 unzip
-
-    - name: Install magiskboot
+         sudo apt install git wget lz4 tar openssl python3 -y
+         
+    - name: Download recovery image from URL
       run: |
-        curl -L -o magisk.zip https://github.com/topjohnwu/Magisk/releases/download/v26.4/Magisk-v26.4.apk
-        unzip magisk.zip lib/*/libmagiskboot.so
-        mv lib/*/libmagiskboot.so magiskboot
-        chmod +x magiskboot
-        ls -lah magiskboot
+         wget ${{github.event.inputs.image_url}}
 
-    - name: Fetch image from URL
+    - name: Start patching script
       run: |
-        wget "${{ github.event.inputs.RECOVERY_URL }}" -O recovery.img
-        ls -lah recovery.img
+         chmod a+x magiskboot
+         chmod a+x patcher-minimal
+         ./patcher-minimal
 
-    - name: Patch Process-1
-      run: |
-        chmod +x script1.sh
-        ./script1.sh || true
+- name: Upload patched image files
+  uses: actions/upload-artifact@v4
+  with:
+    name: Patched Recovery Image Bundle
+    path: output/*        # <--- relativ zum Workflow-Root, alles im output-Ordner
+    if-no-files-found: error
+    retention-days: 15
+    compression-level: 0
+    overwrite: true
 
-    - name: Patch Process-2
-      run: |
-        chmod +x script2.sh
-        ./script2.sh || true
-
-        python3 avbtool extract_public_key --key phh.pem --output phh.pub.bin
-
-        python3 avbtool add_hash_footer \
-          --partition_name recovery \
-          --partition_size $(wc -c recovery-patched.img | cut -d ' ' -f1) \
-          --image recovery-patched.img \
-          --key phh.pem \
-          --algorithm SHA256_RSA4096
-
-        mkdir -p output
-        mv recovery-patched.img output/recovery.img
-        tar -cvf output/fastbootd-recovery.tar -C output recovery.img
-        md5sum -t output/fastbootd-recovery.tar >> output/fastbootd-recovery.tar
-        mv output/fastbootd-recovery.tar output/fastbootd-recovery.tar.md5
-
-    - name: Upload Recovery
-      uses: actions/upload-artifact@v4
-      with:
-        name: Patched-Recovery
-        path: output/*.md5
+- name: Upload keys for patched image
+  uses: actions/upload-artifact@v4
+  with:
+    name: Patched Image Key Bundle
+    path: keys/*          # <--- alles im keys-Ordner
+    if-no-files-found: error
+    retention-days: 15
+    compression-level: 0
+    overwrite: true
